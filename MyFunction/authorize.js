@@ -1,14 +1,12 @@
-const authorizing = (userType) => {
-    return (req, res) => {
+const authorization = (userType) => {
+    return (req, res , next) => {
         if(req.user.userType === userType){
-            res.status(200).json({msg: 'success !'});
+            return next();
         }
         else{
-            res.status(404).json({msg:'you dont permit to this page !'})
+            res.status(404).json({msg:'you dont have permission !'})
         }
     }
 }
 
-module.exports = {
-    authorizing
-}
+module.exports = authorization;

@@ -18,9 +18,10 @@ app.use(bodyParser.json());
 //middleware: passport
 app.use(passport.initialize());
 require('./config/passport')(passport);
+//middleware: upload image
+app.use('/uploads',express.static('uploads'));
 //routes
 app.use('/api/users', require('./routes/api/api_user'))
-
 //port
 const port = 5000;
 
