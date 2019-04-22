@@ -6,9 +6,10 @@ const passport = require('passport');
 //models:
 const { User } = require('../../models/model_user');
 const authorization = require('../../MyFunction/authorize');
-
-
-//
+const validateRegister = require('../../validation/validate_register')
+const { Driver } = require('../../models/model_driver');
+const { Car } = require('../../models/model_car');
+//uploads avatar
 const multer = require('multer');
 const storage = multer.diskStorage({
     destination: function (req, res, cb) {
@@ -24,13 +25,15 @@ const storage = multer.diskStorage({
 })
 
 const upload = multer({ storage });
-
-
 //api: /users/register
 //desc : register new user
 //access: PUBLIC
 router.post('/register', (req, res) => {
     const { email, password, fullname, userType, phone, DOB } = req.body;
+    // const { errors, isValid } = validateRegister(req.body);
+    // if (!isValid) {
+    //     return res.status(400).json(errors);
+    // }
     User.findOne({ $or: [{ email }, { phone }] })
         .then(user => {
             if (user) {
@@ -184,13 +187,185 @@ router.get('/', (req, res) => {
 //api : /users/delete
 router.get('/delete', passport.authenticate('jwt', { session: false }), (req, res) => {
     User.findById(req.user._id).then(user => {
-        if(user){
+        if (user) {
             user.isActive = false;
             user.save().then(console.log).catch(console.log);
         }
-        else{
-            res.status(400).json({msg:'user not found !'});
+        else {
+            res.status(400).json({ msg: 'user not found !' });
         }
     })
 })
-module.exports = router;
+//api: /users/driver
+//desc : update profile user with user type: driver
+//access: PRIVATE ( userType = driver)
+router.post('/drivers/create-profile',
+    passport.authenticate('jwt', { session: false }),
+    authorization("driver"),
+    (req, res) => {
+        // console.log(req.body);
+        const { address, passportId, mainJob, carInfo, passengerRates } = req.body;
+        User.findById(req.user._id)
+            .then(user => {
+                if (user) {
+                    // res.json(user)
+                    console.log(user._id);
+                    Driver.findById({ _id: user._id })
+                        .then(driver => {
+                            if (driver) {
+                                driver.address = address;
+                                driver.passportId = passportId;
+                                driver.mainJob = mainJob;
+                                driver.carInfo = carInfo;
+                                driver.passengerRates = passengerRates;
+                                res.status(200).json({ msg: `driver id ${req.user._id} have updated !` });
+                            }
+                            else {
+                                const newDriver = new Driver({
+                                    _id: user._id,
+                                    address,
+                                    passportId,
+                                    mainJob,
+                                    carInfo,
+                                    passengerRates
+                                });
+                                newDriver.save().then(res.json({ msg: 'save new profile driver success !' }));
+                            }
+                        })
+                }
+                else {
+                    res.json({ msg: 'user not found !' })
+                }
+            })
+    }
+)
+
+//api: /users//drivers/profile/:userid
+//desc: get profile of 1 driver with id
+//access: PUBLIC
+router.get('/drivers/profile/:id', (req, res) => {
+    const id = req.params.id;
+    User.findById(id)
+        .then(user => {
+            if (user) {
+                Driver.findById(id)
+                    .then(driver => {
+                        if (driver) {
+                            res.status(200).json({
+                                profile: {
+                                    id: user._id,
+                                    email: user.email,
+                                    fullname: user.fullname,
+                                    passportId: driver.passportId,
+                                    address: driver.address
+                                }
+                            })
+                        }
+                        else {
+                            res.status(404).json({ msg: 'not a driver !' });
+                        }
+                    })
+            }
+            else {
+                res.status(404).json({ msg: 'user not found !' })
+            }
+        })
+})
+
+//api: /users/drivers/delete-profile
+//desc: delete a driver
+//access: PRIVATE
+router.get('/drivers/delete-profile',
+    passport.authenticate('jwt', { session: false }),
+    authorization("driver"),
+    (req, res) => {
+        const id = req.user._id;
+        User.findById(id)
+            .then(user => {
+                if (user) {
+                    user.isActive = false;
+                    user.save().then(res.json({ msg: 'delete success !' })).catch(console.log);
+                }
+                else {
+                    res.json({ msg: 'not found !' })
+                }
+            })
+    })
+//api: /drivers/add-cars
+//desc: add new car to driver
+//access: PRIVATE
+router.post('/drivers/add-car',
+    passport.authenticate('jwt', { session: false }),
+    authorization("driver"),
+    (req, res) => {
+        const { brand, model, manufacturingYear, licensePlate, numberOfSeats, carImage } = req.body;
+        Driver.findById(req.user._id)
+            .then(driver => {
+                Car.findOne({ _id: driver._id, brand, model, manufacturingYear, licensePlate })
+                    .then(car => {
+                        if (car) {
+                            console.log(car);
+                            res.json({ msg: 'car have existed in this driver' });
+                        }
+                        else {
+                            const newCar = new Car({ _id: driver._id, brand, model, manufacturingYear, licensePlate, numberOfSeats, carImage });
+                            newCar.save().then(() => {
+                                driver.carInfo.push(newCar);
+                                driver.save().then(res.json({ info: driver.carInfo })).catch(console.log());
+                            });
+
+                        }
+                    });
+            });
+    })
+
+//api: /drivers/:driverId/cars
+//desc: displayy info of all car of 1 driver
+//access: PUBLIC
+router.get('/drivers/:driverId/cars', (req, res) => {
+    const id = req.params.driverId;
+    Driver.findById(id)
+        .then(driver => {
+            if (driver) {
+                res.status(200).json({ CarInfo: driver.carInfo });
+            }
+            else {
+                res.status(404).json({ msg: 'not found !' });
+            }
+        })
+})
+///api: /drivers/update-car/:carId
+//desc: update info of 1 car
+// access: PRIVATE 
+router.post('/drivers/update-car/:carID',
+    passport.authenticate('jwt', { session: false }),
+    authorization("driver"),
+    (req, res) => {
+        Car.findById(req.params.carID)
+            .then(car => {
+                if (car) {
+                    const { licensePlate, numberOfSeats, carImage } = req.body;
+                    car.licensePlate = licensePlate;
+                    car.numberOfSeats = numberOfSeats;
+                    car.carImage = carImage;
+                    car.save().then(() => {
+                        Driver.findById(car._id)
+                            .then(driver => {
+                                if(driver){
+                                    const index = driver.carInfo.length;
+                                    console.log(index);
+                                    for(var i =0; i <index ; i++){
+                                        if(driver.carInfo[i].brand === car.brand && driver.carInfo[i].model === car.model){
+                                            driver.carInfo[i] = car;
+                                            driver.save().then(()=>{
+                                                return res.json({updated: driver.carInfo});
+                                            }).catch(console.log)
+                                        }
+                                    }
+                                }
+                            })
+                    })
+                }
+            })
+    })
+module.exports = router;    
