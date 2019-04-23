@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const carSchema = mongoose.Schema({
-    _id: {
+    CarId: {
         type:mongoose.Schema.Types.ObjectId,
     },
     brand: {

@@ -1,6 +1,7 @@
 const authorization = (userType) => {
     return (req, res , next) => {
         if(req.user.userType === userType){
+            res.user = req.user;
             return next();
         }
         else{

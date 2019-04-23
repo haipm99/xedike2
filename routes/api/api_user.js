@@ -301,14 +301,14 @@ router.post('/drivers/add-car',
         const { brand, model, manufacturingYear, licensePlate, numberOfSeats, carImage } = req.body;
         Driver.findById(req.user._id)
             .then(driver => {
-                Car.findOne({ _id: driver._id, brand, model, manufacturingYear, licensePlate })
+                Car.findOne({ licensePlate })
                     .then(car => {
                         if (car) {
                             console.log(car);
                             res.json({ msg: 'car have existed in this driver' });
                         }
                         else {
-                            const newCar = new Car({ _id: driver._id, brand, model, manufacturingYear, licensePlate, numberOfSeats, carImage });
+                            const newCar = new Car({ carID: driver._id, brand, model, manufacturingYear, licensePlate, numberOfSeats, carImage });
                             newCar.save().then(() => {
                                 driver.carInfo.push(newCar);
                                 driver.save().then(res.json({ info: driver.carInfo })).catch(console.log());
@@ -341,30 +341,70 @@ router.post('/drivers/update-car/:carID',
     passport.authenticate('jwt', { session: false }),
     authorization("driver"),
     (req, res) => {
-        Car.findById(req.params.carID)
+        console.log(req.user);
+        const CarId = req.params.carID;
+        Driver.findById(req.user._id)
+            .then(driver => {
+                if (driver) {
+                    for (car of driver.carInfo) {
+                        // console.log('carid: ', car._id , typeof(car._id));
+                        // console.log('params: ',CarId,typeof(CarId));
+                        if (car._id == CarId) {
+                            const { numberOfSeats, carImage } = req.body;
+                            car.numberOfSeats = numberOfSeats;
+                            car.carImage = carImage;
+                            driver.save()
+                                .then(() => {
+                                    Car.findById(CarId)
+                                        .then(carUpdate => {
+                                            if (carUpdate) {
+                                                carUpdate.numberOfSeats = numberOfSeats;
+                                                carUpdate.carImage = carImage;
+                                                carUpdate.save()
+                                                    .then(() => {
+                                                        res.status(200).json({ msg: 'update success !' });
+                                                    }).catch(console.log);
+                                            }
+                                        })
+                                })
+                        }
+                    }
+                }
+            })
+    })
+//api: /drivers/delete-car/:carId
+//desc: delete 1 car
+//access: PRIVATE
+router.get('/drivers/delete-car/:carId',
+    passport.authenticate('jwt', { session: false }),
+    authorization("driver"),
+    (req, res) => {
+        const carId = req.params.carId;
+        Car.findByIdAndDelete(carId)
             .then(car => {
                 if (car) {
-                    const { licensePlate, numberOfSeats, carImage } = req.body;
-                    car.licensePlate = licensePlate;
-                    car.numberOfSeats = numberOfSeats;
-                    car.carImage = carImage;
-                    car.save().then(() => {
-                        Driver.findById(car._id)
-                            .then(driver => {
-                                if(driver){
-                                    const index = driver.carInfo.length;
-                                    console.log(index);
-                                    for(var i =0; i <index ; i++){
-                                        if(driver.carInfo[i].brand === car.brand && driver.carInfo[i].model === car.model){
-                                            driver.carInfo[i] = car;
-                                            driver.save().then(()=>{
-                                                return res.json({updated: driver.carInfo});
-                                            }).catch(console.log)
-                                        }
+                    Driver.findById(req.user._id)
+                        .then(driver => {
+                            if (driver) {
+                                index = -1;
+                                for (const carItem of driver.carInfo) {
+                                    index = index + 1;
+                                    if(carItem._id == carId){
+                                        break;
                                     }
                                 }
-                            })
-                    })
+                                if(index != -1){
+                                    driver.carInfo.splice(index,1);
+                                    driver.save()
+                                        .then(()=>{
+                                            res.status(200).json({msg:'delete success !'});
+                                        }).catch(console.log);
+                                }
+                            }
+                        }).catch(console.log);
+                }
+                else {
+                    res.status(404).json({ msg: 'not found !' });
                 }
             })
     })
