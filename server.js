@@ -7,7 +7,7 @@ const passport = require('passport');
 const {mongoURI} = require('./config/key');
 //connect database
 mongoose.connect("mongodb+srv://admin:admin123@cluster0-ctwbb.mongodb.net/test?retryWrites=true", {useNewUrlParser: true})
-        .then(console.log("Connect to database successfull."))
+        .then(() => console.log("Connect to database successfull."))
         .catch(console.log);
 
 //init server
