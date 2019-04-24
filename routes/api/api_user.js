@@ -6,7 +6,7 @@ const passport = require('passport');
 //models:
 const { User } = require('../../models/model_user');
 const authorization = require('../../MyFunction/authorize');
-const validateRegister = require('../../validation/validate_register')
+const validateRegister = require('../../validation/validate_register');
 const { Driver } = require('../../models/model_driver');
 const { Car } = require('../../models/model_car');
 //uploads avatar
@@ -336,7 +336,7 @@ router.get('/drivers/:driverId/cars', (req, res) => {
 })
 ///api: /drivers/update-car/:carId
 //desc: update info of 1 car
-// access: PRIVATE 
+//access: PRIVATE 
 router.post('/drivers/update-car/:carID',
     passport.authenticate('jwt', { session: false }),
     authorization("driver"),
