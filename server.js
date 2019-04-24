@@ -21,7 +21,8 @@ require('./config/passport')(passport);
 //middleware: upload image
 app.use('/uploads',express.static('uploads'));
 //routes
-app.use('/api/users', require('./routes/api/api_user'))
+app.use('/api/users', require('./routes/api/api_user'));
+app.use('/api/trips', require('./routes/api/api_trip'));
 //port
 const port = 5000;
 
