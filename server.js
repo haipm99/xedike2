@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const passport = require('passport');
 //import my package
-const {mongoURI} = require('./config/key');
+//const {mongoURI} = require('./config/key');
 //connect database
 const {MONGO_URI} = process.env;
 //cmt link url : 'mongodb+srv://admin123:admin123@cluster0-ctwbb.mongodb.net/test?retryWrites=true'
@@ -13,7 +13,7 @@ mongoose.connect(MONGO_URI, {useNewUrlParser: true})
         .catch(console.log);
 
 
-        
+
 //init server
 const app = express();
 //middleware: body-parser
