@@ -8,7 +8,7 @@ const {mongoURI} = require('./config/key');
 //connect database
 const {MONGO_URI} = process.env;
 //cmt link url : 'mongodb+srv://admin123:admin123@cluster0-ctwbb.mongodb.net/test?retryWrites=true'
-mongoose.connect("mongodb+srv://haine:12345678hai@cluster0-ctwbb.mongodb.net/test?retryWrites=true", {useNewUrlParser: true})
+mongoose.connect(MONGO_URI, {useNewUrlParser: true})
         .then(() => console.log("Connect to database successfull."))
         .catch(console.log);
 
