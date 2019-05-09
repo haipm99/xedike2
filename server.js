@@ -12,6 +12,8 @@ mongoose.connect(MONGO_URI, {useNewUrlParser: true})
         .then(() => console.log("Connect to database successfull."))
         .catch(console.log);
 
+
+        
 //init server
 const app = express();
 //middleware: body-parser
