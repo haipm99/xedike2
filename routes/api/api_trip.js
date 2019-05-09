@@ -13,13 +13,14 @@ const authorization = require('../../MyFunction/authorize');
 //api: trips/
 //desc: create a trip
 //access: PRIVATE
-router.post('/',
-    passport.authenticate('jwt', { session: false }),
-    authorization("driver"),
+router.post('/create',
+    // passport.authenticate('jwt', { session: false }),
+    // authorization("driver"),
     (req, res) => {
-        const { locationFrom, locationTo, startTime, option, availableSeats, fee } = req.body;
+        const { driverId, locationFrom, locationTo, startTime, option, availableSeats, fee } = req.body;
         const newTrip = new Trip({
-            driverId: req.user._id,
+            // driverId: req.user._id,
+            driverId,
             locationFrom,
             locationTo,
             startTime,
@@ -33,6 +34,15 @@ router.post('/',
             }).catch(console.log);
     }
 )
+//api: trips/
+//desc: get all trip
+//access : public
+router.get('/', (req, res) => {
+    Trip.find()
+        .then(trips => {
+            res.status(200).json({ trip: trips });
+        }).catch(console.log);
+})
 //api: trips/updat/:tripID
 //desc: update a trip
 //access: PRIVATE
@@ -59,25 +69,32 @@ router.post('/update/:tripId',
                 }
             }).catch(console.log);
     })
+//api : trips/getTripOf/:id
+router.get('/getTripOf/:id', (req, res) => {
+    const driverId = req.params.id;
+    console.log(driverId);
+    Trip.find({ driverId })
+        .then(trips => {
+            if (trips !== []) {
+                return res.status(200).json(trips)
+            }
+            return res.status(400).json({ msg: 'no result' })
+        }).catch(console.log)
+})
 //api: trips/delete-trip/:tripId
 //desc: delete a trip
 //access:PRIVATE
 router.get('/delete-trip/:tripId',
-    passport.authenticate('jwt', { session: false }),
-    authorization("driver"),
+    // passport.authenticate('jwt', { session: false }),
+    // authorization("driver"),
     (req, res) => {
         const tripId = req.params.tripId;
         Trip.findById(tripId)
             .then(trip => {
                 if (trip) {
-                    if (trip.driverId.toString() === req.user._id.toString()) {
-                        Trip.findByIdAndDelete(trip._id).
-                            then(() => { res.status(200).json({ msg: 'delete success !' }) })
-                            .catch(console.log)
-                    }
-                    else {
-                        res.status(404).json({ msg: 'you are not driver of this trip !' });
-                    }
+                    Trip.findByIdAndDelete(trip._id).
+                        then(() => { res.status(200).json({ msg: 'delete success !' }) })
+                        .catch(console.log)
                 }
                 else {
                     res.status(404).json({ msg: 'not found trip !' });
@@ -88,22 +105,17 @@ router.get('/delete-trip/:tripId',
 //desc:driver finish a trip 
 //access: PRIVATE
 router.get('/finish/:tripId',
-    passport.authenticate('jwt', { session: false }),
-    authorization('driver'),
+    // passport.authenticate('jwt', { session: false }),
+    // authorization('driver'),
     (req, res) => {
         const tripId = req.params.tripId;
         Trip.findById(tripId)
             .then(trip => {
                 if (trip) {
-                    if (trip.driverId.toString() === req.user._id.toString()) {
-                        trip.isFinish = true;
-                        trip.save().then(() => {
-                            res.status(200).json({ msg: 'finish !' });
-                        }).catch(console.log)
-                    }
-                    else {
-                        res.status(404).json({ msg: 'you are not driver of this trip' });
-                    }
+                    trip.isFinish = true;
+                    trip.save().then(() => {
+                        res.status(200).json({ msg: 'finish !' });
+                    }).catch(console.log)
                 }
                 else {
                     res.status(404).json({ msg: 'trip not found !' });
@@ -114,16 +126,16 @@ router.get('/finish/:tripId',
 //desc: user book new trip
 //access: PRIVATE
 router.post('/book/:tripId',
-    passport.authenticate('jwt', { session: false }),
-    authorization("passenger"),
+    // passport.authenticate('jwt', { session: false }),
+    // authorization("passenger"),
     (req, res) => {
-        const { locationGetIn, locationGetOff, paymentMethod, numberOfSeatsBook } = req.body;
+        const { userId, locationGetIn, locationGetOff, paymentMethod, numberOfSeatsBook } = req.body;
         const tripId = req.params.tripId;
         Trip.findById(tripId)
             .then(trip => {
                 if (trip) {
                     const myPassenger = {
-                        userId: req.user._id,
+                        userId,
                         locationGetIn: locationGetIn,
                         locationGetOff: locationGetOff,
                         paymentMethod: paymentMethod,
@@ -152,26 +164,36 @@ router.get('/cancel/:tripId',
         const userId = req.user._id;
         Trip.findById(tripId)
             .then(trip => {
-                if(trip){
-                     index = -1;
+                if (trip) {
+                    index = -1;
                     for (const Item of trip.passenger) {
                         index = index + 1;
-                        if(Item._id == userId){
+                        if (Item._id == userId) {
                             break;
                         }
                     }
-                    if(index != -1){
-                        trip.passenger.splice(index,1);
+                    if (index != -1) {
+                        trip.passenger.splice(index, 1);
                         trip.save()
-                            .then(()=>{
-                                res.status(200).json({msg:'delete success !'});
+                            .then(() => {
+                                res.status(200).json({ msg: 'delete success !' });
                             }).catch(console.log);
                     }
                 }
-                else{
-                    res.status(404).json({msg:'trip not found'});
+                else {
+                    res.status(404).json({ msg: 'trip not found' });
                 }
             })
     })
-// api: trips/rates/:tripId
+// api: trips/get/:tripid
+router.get('/getpassengert/:id',
+    (req, res) => {
+        const idTrip = req.params.id
+        Trip.findById(idTrip)
+            .then(trip => {
+                if (trip) {
+                    res.status(200).json({ trip })
+                }
+            })
+    })
 module.exports = router;

@@ -1,3 +1,6 @@
+const jwtDecode = require('jwt-decode');
+
+
 const authorization = (userType) => {
     return (req, res , next) => {
         if(req.user.userType === userType){

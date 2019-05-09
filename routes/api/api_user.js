@@ -30,10 +30,10 @@ const upload = multer({ storage });
 //access: PUBLIC
 router.post('/register', (req, res) => {
     const { email, password, fullname, userType, phone, DOB } = req.body;
-    // const { errors, isValid } = validateRegister(req.body);
-    // if (!isValid) {
-    //     return res.status(400).json(errors);
-    // }
+    const { errors, isValid } = validateRegister(req.body);
+    if (!isValid) {
+        return res.status(400).json(errors);
+    }
     User.findOne({ $or: [{ email }, { phone }] })
         .then(user => {
             if (user) {
@@ -60,9 +60,12 @@ router.post('/register', (req, res) => {
 //desc: login to system
 //access: PUBLIC
 router.post('/login', (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, fingerprint } = req.body;
+    console.log(req.body)
+    // console.log(email)
     User.findOne({ email })
         .then(user => {
+            console.log(user)
             if (user) {
                 bcrypt.compare(password, user.password)
                     .then(isMatch => {
@@ -72,6 +75,9 @@ router.post('/login', (req, res) => {
                                 email: user.email,
                                 fullname: user.fullname,
                                 userType: user.userType,
+                                phone: user.phone,
+                                DOB: user.DOB,
+                                RegisterDate: user.registerDate
                             }
                             jwt.sign(
                                 payload,
@@ -120,47 +126,25 @@ router.get('/users/:id', (req, res) => {
 //api: /users/update
 //desc : update information of 1 user
 //access: PRIVATE
-router.post('/update', passport.authenticate('jwt', { session: false }), (req, res) => {
-    const { email, password, fullname, phone } = req.body;
-    console.log('input email: ', email);
-    console.log('input phone: ', phone);
-    User.findById(req.user._id)
-        .then(user => {
-            if (user) {
-                console.log('current User:', user)
-                User.findOne({ email })
-                    .then(userCheckMail => {
-                        console.log(typeof (userCheckMail));
-                        if (userCheckMail) {
-                            console.log('Mail have been existed !');
-                        }
-                        else {
-                            user.email = email;
-                            console.log(user.email);
-                            user.fullname = fullname;
-                            User.findOne({ phone })
-                                .then(userCheck => {
-                                    if (userCheck) {
-                                        console.log('Phone have been existed !');
-                                    }
-                                    else {
-                                        user.phone = phone;
-                                        bcrypt.genSalt(10, (err, salt) => {
-                                            bcrypt.hash(password, salt, (err, hash) => {
-                                                user.password = hash;
-                                                user.save().then(console.log).catch(console.log);
-                                            })
-                                        })
-                                    }
-                                }).catch(console.log);
-                        }
-                    }).catch(console.log);
-                // .then(console.log).catch(console.log);
-                // console.log(mess);
-                res.json({ msg: '' })
-            }
-        })
-})
+router.post('/update',
+    // passport.authenticate('jwt', { session: false }),
+    (req, res) => {
+        const { fullname, DOB } = req.body;
+        console.log(req.body.userId)
+        User.findById(req.body.userId)
+            .then(user => {
+                console.log(user)
+                if (user) {
+                    user.fullname = fullname;
+                    user.DOB = DOB;
+                    user.save().then(console.log).catch();
+                    return res.status(200).json({msg: 'success !'});
+                }
+                else {
+                    return res.status(400).json({msg:'not found'});
+                }
+            }).catch(console.log);
+    })
 //api : /users/upload-avatar
 //desc:
 //access: PUBLIC
@@ -389,15 +373,15 @@ router.get('/drivers/delete-car/:carId',
                                 index = -1;
                                 for (const carItem of driver.carInfo) {
                                     index = index + 1;
-                                    if(carItem._id == carId){
+                                    if (carItem._id == carId) {
                                         break;
                                     }
                                 }
-                                if(index != -1){
-                                    driver.carInfo.splice(index,1);
+                                if (index != -1) {
+                                    driver.carInfo.splice(index, 1);
                                     driver.save()
-                                        .then(()=>{
-                                            res.status(200).json({msg:'delete success !'});
+                                        .then(() => {
+                                            res.status(200).json({ msg: 'delete success !' });
                                         }).catch(console.log);
                                 }
                             }
@@ -407,5 +391,10 @@ router.get('/drivers/delete-car/:carId',
                     res.status(404).json({ msg: 'not found !' });
                 }
             })
+    })
+// test
+router.get('/test',
+    (req, res, next) => {
+        res.status(200).json({ msg: 'hello' });
     })
 module.exports = router;    
