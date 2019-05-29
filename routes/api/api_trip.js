@@ -196,4 +196,25 @@ router.get('/getpassengert/:id',
                 }
             })
     })
+// api: trips/getTripUser/:id
+router.get('/getTripUser/:id', (req,res) => {
+    const id = req.params.id;
+    let arrTrip = [];
+    Trip.find()
+        .then(trips => {
+            trips.forEach(trip => {
+                trip.passenger.forEach(item => {
+                    if(item.userId == id){
+                        arrTrip.push(trip);
+                    }
+                })
+            })
+            if(arrTrip !== []){
+                return res.status(200).json({arrTrip})
+            }
+            else{
+                return res.status(400).json({msg:'not found !'});
+            }
+        })
+})
 module.exports = router;
